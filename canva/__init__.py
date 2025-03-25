@@ -14,13 +14,16 @@ load_dotenv(os.path.join(MAIN_DIR, '.env'))
 client_id = os.getenv('CANVA_CLIENT_ID')
 client_secret = os.getenv('CANVA_CLIENT_SECRET')
 
-if not os.path.exists(token_file):
-    cv.auth.token.get(client_id, client_secret, cv.auth.scopes.write(), token_file)
+canva.init(client_id, client_secret, token_file)
 
-with open(token_file, 'r') as tf:
-    token_data = json.load(tf)
-    access_token = token_data.get('access_token', '')
-    if not access_token:
-        cv.auth.token.get(client_id, client_secret, cv.auth.scopes.write(), token_file)
+design_id = cv.design.get.id('vórtice', client_id, client_secret, token_file)
+export_id = cv.export.design.png(design_id, True, client_id, client_secret, token_file)
 
-print(cv.design.list(client_id, client_secret, token_file))
+while True:
+    export_status = cv.export.get.status(export_id, client_id, client_secret, token_file)
+    if export_status == 'success':
+        url = cv.export.get.url(export_id, client_id, client_secret, token_file)
+        break
+
+print(url)
+
