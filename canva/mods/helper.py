@@ -8,7 +8,7 @@ def token_(client_id=None,  client_secret=None, token_file="canva.json"):
         'Authorization': f'Bearer {current_token}'
     }
     response = requests.get(url, headers=headers)
-    if response.status_code == '200':
+    if response.status_code == 200:
         return current_token
     else:
         return auth.token.refresh(client_id,  client_secret, token_file)
