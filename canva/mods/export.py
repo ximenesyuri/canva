@@ -11,13 +11,13 @@ class export:
                 'Authorization': f'Bearer {access_token}',
                 "Content-Type": "application/json"
             }
-            geometry = design.get.thumb.geometry(design_id, client_id, client_secret, token_file)
+            #geometry = design.get.thumb.geometry(design_id, client_id, client_secret, token_file)
             data = {
                 "design_id": design_id,
                 "format": {
                     "type": "png",
-                    "width": f"{geometry['width']}",
-                    "height": f"{geometry['height']}",
+                    #"width": f"{geometry['width']}",
+                    #"height": f"{geometry['height']}",
                     "transparent_background": bg
                 }
             }
