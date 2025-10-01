@@ -6,12 +6,12 @@
 
 With `pip`:
 ```bash
-/path/to/venv/bin/pip install git+https://github.com/pythonalta/canva
+pip install git+https://github.com/pythonalta/canva
 ```
 
 With [py](https://github.com/ximenesyuri/py):
 ```bash
-py install pythonalta/canva --from github
+py install ximenesyuri/canva
 ```
 
 # Authentication

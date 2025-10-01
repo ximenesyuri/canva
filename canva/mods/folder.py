@@ -3,13 +3,22 @@ import requests
 
 class folder:
     class list:
-        def all(parent_id, client_id=None, client_secret=None, token_file="canva.json"):
+        def designs(parent_id, client_id=None, client_secret=None, token_file="canva.json"):
             access_token = token_(client_id, client_secret, token_file)
             url = f'https://api.canva.com/rest/v1/folders/{parent_id}/items'
             headers = {
                 'Authorization': f'Bearer {access_token}'
             }
-            return requests.get(url, headers=headers).json()['items']
+            response = requests.get(url, headers=headers).json()
+            items = []
+            items.extend(response.get('items', []))
+            continuation = response.get('continuation', '')
+            while continuation:
+                url = f'https://api.canva.com/rest/v1/folders/{parent_id}/items?continuation={continuation}'
+                response = requests.get(url, headers=headers).json()
+                items.extend(response.get('items', []))
+                continuation = response.get('continuation', '')
+            return items
 
         def folders(parent_id, client_id=None, client_secret=None, token_file="canva.json"):
             access_token = token_(client_id, client_secret, token_file)
@@ -17,7 +26,16 @@ class folder:
             headers = {
                 'Authorization': f'Bearer {access_token}'
             }
-            return requests.get(url, headers=headers).json()['items']
+            response = requests.get(url, headers=headers).json()
+            items = []
+            items.extend(response.get('items', []))
+            continuation = response.get('continuation', '')
+            while continuation:
+                url = f'https://api.canva.com/rest/v1/folders/{parent_id}/items?continuation={continuation}'
+                response = requests.get(url, headers=headers).json()
+                items.extend(response.get('items', []))
+                continuation = response.get('continuation', '')
+            return items
 
         def designs(parent_id, client_id=None, client_secret=None, token_file="canva.json"):
             access_token = token_(client_id, client_secret, token_file)
@@ -25,7 +43,16 @@ class folder:
             headers = {
                 'Authorization': f'Bearer {access_token}'
             }
-            return requests.get(url, headers=headers).json()['items']
+            response = requests.get(url, headers=headers).json()
+            items = []
+            items.extend(response.get('items', []))
+            continuation = response.get('continuation', '')
+            while continuation:
+                url = f'https://api.canva.com/rest/v1/folders/{parent_id}/items?continuation={continuation}'
+                response = requests.get(url, headers=headers).json()
+                items.extend(response.get('items', []))
+                continuation = response.get('continuation', '')
+            return items
 
     class get:
         def id(folder_name, parent_id, client_id=None, client_secret=None, token_file="canva.json"):
