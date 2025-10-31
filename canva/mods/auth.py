@@ -37,7 +37,7 @@ class auth:
     class token:
         class get:
             @staticmethod
-            def new(client_id=None, client_secret=None, scopes=None, token_file='canva.json'):
+            def new(client_id=None, client_secret=None, scopes=None, token_data='canva.json'):
                 if not client_id:
                     client_id = os.getenv('CANVA_CLIENT_ID')
                     if not client_id:
@@ -51,13 +51,17 @@ class auth:
                 if scopes is None:
                     scopes = auth.scopes.read()
 
-                if token_file and os.path.isfile(token_file):
-                    with open(token_file, 'r') as f:
-                        token_data = json.load(f)
-                        access_token = token_data.get('access_token')
-                        refresh_token = token_data.get('refresh_token')
-                        if access_token and refresh_token:
-                            return access_token, refresh_token
+                if token_data and os.path.isfile(token_data):
+                    with open(token_data, 'r') as f:
+                        token = json.load(f)
+                        access_token = token.get('access_token')
+                        refresh_token = token.get('refresh_token')
+                if isinstance(token_data, dict):
+                    access_token = token_data.get('access_token')
+                    refresh_token = token_data.get('refresh_token')
+
+                if access_token and refresh_token:
+                    return access_token, refresh_token
 
                 code_verifier = auth.code.verifier()
                 code_challenge = auth.code.challenge(code_verifier)
@@ -120,8 +124,9 @@ class auth:
                         'refresh_token': refresh_token
                     }
 
-                    with open(token_file, 'w') as token_file:
-                        json.dump(token_dict, token_file)
+                    if isinstance(token_data, str):
+                        with open(token_data, 'w') as token_file:
+                            json.dump(token_dict, token_file)
 
                     print('Tokens saved to tokens.json')
                 else:
@@ -129,17 +134,23 @@ class auth:
                     print('Response:', response.text)
 
             @staticmethod
-            def current(client_id, client_secret, token_file="canva.json"):
-                if os.path.exists(token_file):
-                    with open(token_file, 'r') as tf:
-                        token_data = json.load(tf)
-                        current_token = token_data.get('access_token')
+            def current(client_id, client_secret, token_data="canva.json"):
+                if os.path.exists(token_data):
+                    with open(token_data, 'r') as tf:
+                        token = json.load(tf)
+                        current_token = token.get('access_token')
                         if current_token:
                             return current_token
-                        raise ValueError(f'There is no access token defined in {token_file}.')
+                        raise ValueError(f'There is no access token defined in {token_data}.')
+
+                if isinstance(token_data, str):
+                    current_token = token.get('access_token')
+                    if current_token:
+                        return current_token
+                    raise ValueError(f'There is no access token defined in {token_data}.')
 
         @staticmethod
-        def refresh(client_id, client_secret, token_file='canva.json'):
+        def refresh(client_id, client_secret, token_data='canva.json'):
             token_url = 'https://api.canva.com/rest/v1/oauth/token'
             credentials = f"{client_id}:{client_secret}"
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
@@ -149,9 +160,12 @@ class auth:
                 'Content-Type': 'application/x-www-form-urlencoded',
             }
 
-            with open(token_file, 'r') as tf:
-                token_data = json.load(tf)
-                refresh_token = token_data.get('refresh_token')
+            if os.path.exists(token_data):
+                with open(token_data, 'r') as tf:
+                    token = json.load(tf)
+                    refresh_token = token.get('refresh_token')
+            if isinstance(token_data, dict):
+                refresh_token = token.get('refresh_token')
 
             data = {
                 'grant_type': 'refresh_token',
@@ -170,8 +184,9 @@ class auth:
                     'refresh_token': refresh_token
                 }
 
-                with open(token_file, 'w') as token_file:
-                    json.dump(token_dict, token_file)
+                if isinstance(token_data, str):
+                    with open(token_data, 'w') as token_file:
+                        json.dump(token_dict, token_file)
 
                 return access_token
             else:
