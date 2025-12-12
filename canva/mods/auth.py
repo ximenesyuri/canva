@@ -51,7 +51,7 @@ class auth:
                 if scopes is None:
                     scopes = auth.scopes.read()
 
-                if token_data and os.path.isfile(token_data):
+                if isinstance(token_data, str) and os.path.isfile(token_data):
                     with open(token_data, 'r') as f:
                         token = json.load(f)
                         access_token = token.get('access_token')
@@ -135,7 +135,7 @@ class auth:
 
             @staticmethod
             def current(client_id, client_secret, token_data="canva.json"):
-                if os.path.exists(token_data):
+                if isinstance(token_data, str) and os.path.exists(token_data):
                     with open(token_data, 'r') as tf:
                         token = json.load(tf)
                         current_token = token.get('access_token')
@@ -143,7 +143,7 @@ class auth:
                             return current_token
                         raise ValueError(f'There is no access token defined in {token_data}.')
 
-                if isinstance(token_data, str):
+                if isinstance(token_data, dict):
                     current_token = token.get('access_token')
                     if current_token:
                         return current_token
@@ -160,7 +160,7 @@ class auth:
                 'Content-Type': 'application/x-www-form-urlencoded',
             }
 
-            if os.path.exists(token_data):
+            if isinstance(token_data, str) and os.path.exists(token_data):
                 with open(token_data, 'r') as tf:
                     token = json.load(tf)
                     refresh_token = token.get('refresh_token')
