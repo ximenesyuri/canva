@@ -144,7 +144,7 @@ class auth:
                         raise ValueError(f'There is no access token defined in {token_data}.')
 
                 if isinstance(token_data, dict):
-                    current_token = token.get('access_token')
+                    current_token = token_data.get('access_token')
                     if current_token:
                         return current_token
                     raise ValueError(f'There is no access token defined in {token_data}.')
@@ -165,7 +165,7 @@ class auth:
                     token = json.load(tf)
                     refresh_token = token.get('refresh_token')
             if isinstance(token_data, dict):
-                refresh_token = token.get('refresh_token')
+                refresh_token = token_data.get('refresh_token')
 
             data = {
                 'grant_type': 'refresh_token',
