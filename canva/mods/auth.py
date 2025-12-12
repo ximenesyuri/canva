@@ -1,11 +1,12 @@
+import os
+import requests
+import base64
+import hashlib
 import webbrowser
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-import requests
-import os
-import json
-import base64
-import hashlib
+from typed import typed, Str, Nill, Dict, Path, Maybe, Union, File, Tuple
+from utils import file, json, envs, cmd
 
 def collect_after_sequence(input_string, sequence):
     index = input_string.find(sequence)
@@ -36,27 +37,40 @@ class auth:
 
     class token:
         class get:
-            @staticmethod
-            def new(client_id=None, client_secret=None, scopes=None, token_data='canva.json'):
+            @typed
+            def new(
+                client_id: Maybe(Str)=None,
+                client_secret: Maybe(Str)=None,
+                scopes: Maybe(Str)=None,
+                token_data: Union(Dict, Path)='canva.json'
+            ) -> Maybe(Tuple):
+
                 if not client_id:
-                    client_id = os.getenv('CANVA_CLIENT_ID')
+                    client_id = envs.get('CANVA_CLIENT_ID')
                     if not client_id:
                         raise ValueError("Client ID not provided.")
 
                 if not client_secret:
-                    client_secret = os.getenv('CANVA_CLIENT_SECRET')
+                    client_secret = envs.get('CANVA_CLIENT_SECRET')
                     if not client_secret:
                         raise ValueError("Client Secret not provided.")
 
                 if scopes is None:
                     scopes = auth.scopes.read()
 
-                if isinstance(token_data, str) and os.path.isfile(token_data):
-                    with open(token_data, 'r') as f:
-                        token = json.load(f)
-                        access_token = token.get('access_token')
-                        refresh_token = token.get('refresh_token')
-                if isinstance(token_data, dict):
+                access_token = ""
+                refresh_token = ""
+
+                if token_data in Path:
+                    cmd.touch(token_data)
+                    try:
+                        token_data_ = json.read(token_data)
+                        access_token = token_data_.get('access_token')
+                        refresh_token = token_data_.get('refresh_token')
+                    except:
+                        pass
+
+                if token_data in Dict:
                     access_token = token_data.get('access_token')
                     refresh_token = token_data.get('refresh_token')
 
@@ -115,18 +129,17 @@ class auth:
                 response = requests.post(token_url, headers=headers, data=data)
 
                 if response.status_code == 200:
-                    token_data = response.json()
-                    access_token = token_data.get('access_token')
-                    refresh_token = token_data.get('refresh_token')
+                    token_data_ = response.json()
+                    access_token = token_data_.get('access_token')
+                    refresh_token = token_data_.get('refresh_token')
 
                     token_dict = {
                         'access_token': access_token,
                         'refresh_token': refresh_token
                     }
 
-                    if isinstance(token_data, str):
-                        with open(token_data, 'w') as token_file:
-                            json.dump(token_dict, token_file)
+                    if token_data in Path:
+                        json.write(token_dict, token_data)
 
                     print('Tokens saved to tokens.json')
                 else:

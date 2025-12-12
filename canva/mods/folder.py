@@ -3,7 +3,7 @@ import requests
 
 class folder:
     class list:
-        def designs(parent_id, client_id=None, client_secret=None, token_data="canva.json"):
+        def all(parent_id, client_id=None, client_secret=None, token_data="canva.json"):
             access_token = token_(client_id, client_secret, token_data)
             url = f'https://api.canva.com/rest/v1/folders/{parent_id}/items'
             headers = {

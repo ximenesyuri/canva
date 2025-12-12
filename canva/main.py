@@ -1,10 +1,9 @@
+from typed import typed, Maybe, Str, Path, Dict, Nill
 from canva.mods.auth   import auth
 from canva.mods.folder import folder
 from canva.mods.design import design
 from canva.mods.page   import page
 from canva.mods.export import export
-import os
-import json
 
 class Canva:
     auth   = auth
@@ -13,13 +12,11 @@ class Canva:
     page   = page
     export = export
 
-    def init(client_id=None, client_secret=None, token_data="canva.json"):
-        if not token_data:
-            Canva.auth.token.get.new(client_id, client_secret, Canva.auth.scopes.write(), token_data)
-
-        token_data = json.loads(token_data)
-        access_token = token_data.get('access_token', '')
-        if not access_token:
-            Canva.auth.token.get.new(client_id, client_secret, Canva.auth.scopes.write(), token_data)
-
-
+    @typed
+    def init(client_id: Str, client_secret: Str, scopes: Maybe(Str)=None, token_file: Path="canva.json") -> Nill:
+        Canva.auth.token.get.new(
+            client_id=client_id,
+            client_secret=client_secret,
+            scopes=scopes,
+            token_data=token_file
+        )
