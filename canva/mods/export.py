@@ -1,6 +1,7 @@
 import requests
 from canva.mods.helper import token_, authorized_request
 from canva.mods.design import design
+from utils import cmd
 
 MAX_EXPORT_RETRIES = 5
 
@@ -42,7 +43,7 @@ class export:
                     except ValueError:
                         body = {"raw": resp.text}
 
-                    time.sleep(delay)
+                    cmd.sleep(delay)
                     continue
 
                 try:
