@@ -161,8 +161,8 @@ class auth:
                         return current_token
                     raise ValueError(f'There is no access token defined in {token_data}.')
 
-        @staticmethod
-        def refresh(client_id, client_secret, token_data='canva.json'):
+        @typed
+        def refresh(client_id: Maybe(Str)=None, client_secret: Maybe(Str)=None, token_data: Union(File, Dict)='canva.json') -> Str:
             token_url = 'https://api.canva.com/rest/v1/oauth/token'
             credentials = f"{client_id}:{client_secret}"
             encoded_credentials = base64.b64encode(credentials.encode()).decode()
@@ -172,11 +172,10 @@ class auth:
                 'Content-Type': 'application/x-www-form-urlencoded',
             }
 
-            if isinstance(token_data, str) and os.path.exists(token_data):
-                with open(token_data, 'r') as tf:
-                    token = json.load(tf)
-                    refresh_token = token.get('refresh_token')
-            if isinstance(token_data, dict):
+            if token_data in File:
+                token_data_ = json.read(token_data)
+                refresh_token = token_data_.get('refresh_token')
+            if token_data in Dict:
                 refresh_token = token_data.get('refresh_token')
 
             data = {
@@ -187,19 +186,37 @@ class auth:
             response = requests.post(token_url, headers=headers, data=data)
 
             if response.status_code == 200:
-                token_data = response.json()
-                access_token = token_data.get('access_token')
-                refresh_token = token_data.get('refresh_token')
+                token_data_resp = response.json()
+                access_token = token_data_resp.get('access_token')
+                refresh_token = token_data_resp.get('refresh_token')
 
                 token_dict = {
                     'access_token': access_token,
                     'refresh_token': refresh_token
                 }
 
-                if isinstance(token_data, str):
-                    with open(token_data, 'w') as token_file:
-                        json.dump(token_dict, token_file)
+                if token_data in File:
+                    json.write(token_dict, token_data)
 
                 return access_token
-            else:
-                raise Exception(f"Failed to refresh token: {response.status_code}, {response.text}")
+
+            try:
+                err_body = response.json()
+            except ValueError:
+                err_body = {"raw": response.text}
+
+            if (
+                response.status_code == 400
+                and err_body.get("error") == "invalid_grant"
+                and "Token lineage has been revoked" in err_body.get("error_description", "")
+            ):
+                raise RuntimeError(
+                    "Canva refresh token has been revoked. "
+                    "Delete your token file and re-run the OAuth flow "
+                    "(canva.init(...)) to obtain new tokens."
+                )
+
+            raise Exception(
+                f"Failed to refresh token: {response.status_code}, {err_body}"
+            )
+
