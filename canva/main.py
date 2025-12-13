@@ -13,7 +13,7 @@ class Canva:
     export = export
 
     @typed
-    def init(client_id: Str, client_secret: Str, scopes: Maybe(Str)=None, token_file: Path="canva.json") -> Nill:
+    def init(client_id: Maybe(Str)=None, client_secret: Maybe(Str)=None, scopes: Maybe(Str)=None, token_file: Path="canva.json") -> Nill:
         Canva.auth.token.get.new(
             client_id=client_id,
             client_secret=client_secret,
