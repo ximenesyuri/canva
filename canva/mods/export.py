@@ -1,5 +1,5 @@
 import requests
-from canva.mods.helper import token_
+from canva.mods.helper import token_, authorized_request
 from canva.mods.design import design
 
 MAX_EXPORT_RETRIES = 5
