@@ -146,17 +146,16 @@ class auth:
                     print('Error:', response.status_code)
                     print('Response:', response.text)
 
-            @staticmethod
-            def current(client_id, client_secret, token_data="canva.json"):
-                if isinstance(token_data, str) and os.path.exists(token_data):
-                    with open(token_data, 'r') as tf:
-                        token = json.load(tf)
-                        current_token = token.get('access_token')
-                        if current_token:
-                            return current_token
-                        raise ValueError(f'There is no access token defined in {token_data}.')
+            @typed
+            def current(token_data: Union(File, Dict)) -> Str:
+                if token_data in File:
+                    data = json.read(token_data)
+                    current_token = data.get('access_token')
+                    if current_token:
+                        return current_token
+                    raise ValueError(f'There is no access token defined in {token_data}.')
 
-                if isinstance(token_data, dict):
+                if token_data in Dict:
                     current_token = token_data.get('access_token')
                     if current_token:
                         return current_token
