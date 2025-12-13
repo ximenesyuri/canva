@@ -2,6 +2,8 @@ import requests
 from canva.mods.helper import token_
 from canva.mods.design import design
 
+MAX_EXPORT_RETRIES = 5
+
 class export:
     class design:
         def png(design_id, bg=False, client_id=None, client_secret=None, token_data="canva.json"):
@@ -18,23 +20,47 @@ class export:
                     "transparent_background": bg
                 }
             }
-            resp = requests.post(url, headers=headers, json=data)
 
-            try:
-                body = resp.json()
-            except ValueError:
-                raise RuntimeError(
-                    f"Canva export PNG returned non-JSON response: "
-                    f"status={resp.status_code}, text={resp.text}"
-                )
+            for attempt in range(MAX_EXPORT_RETRIES):
+                resp = requests.post(url, headers=headers, json=data)
 
-            if 'job' not in body or 'id' not in body['job']:
-                raise RuntimeError(
-                    f"Unexpected Canva export PNG response: "
-                    f"status={resp.status_code}, body={body}"
-                )
+                if resp.status_code == 429:
+                    retry_after = resp.headers.get("Retry-After")
+                    if retry_after is not None:
+                        try:
+                            delay = int(retry_after)
+                        except ValueError:
+                            delay = 2 ** attempt
+                    else:
+                        delay = 2 ** attempt
 
-            return body['job']['id']
+                    try:
+                        body = resp.json()
+                    except ValueError:
+                        body = {"raw": resp.text}
+
+                    time.sleep(delay)
+                    continue
+
+                try:
+                    body = resp.json()
+                except ValueError:
+                    raise RuntimeError(
+                        f"Canva export PNG returned non-JSON response: "
+                        f"status={resp.status_code}, text={resp.text}"
+                    )
+
+                if 'job' not in body or 'id' not in body['job']:
+                    raise RuntimeError(
+                        f"Unexpected Canva export PNG response: "
+                        f"status={resp.status_code}, body={body}"
+                    )
+
+                return body['job']['id']
+
+            raise RuntimeError(
+                f"Too many 429 responses from Canva export PNG after {MAX_EXPORT_RETRIES} attempts"
+            )
 
         def svg(design_id, bg=False, client_id=None, client_secret=None, token_data="canva.json"):
             access_token = token_(client_id, client_secret, token_data)
