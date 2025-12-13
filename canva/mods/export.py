@@ -6,22 +6,35 @@ class export:
     class design:
         def png(design_id, bg=False, client_id=None, client_secret=None, token_data="canva.json"):
             access_token = token_(client_id, client_secret, token_data)
-            url = f'https://api.canva.com/rest/v1/exports'
+            url = 'https://api.canva.com/rest/v1/exports'
             headers = {
                 'Authorization': f'Bearer {access_token}',
                 "Content-Type": "application/json"
             }
-            #geometry = design.get.thumb.geometry(design_id, client_id, client_secret, token_data)
             data = {
                 "design_id": design_id,
                 "format": {
                     "type": "png",
-                    #"width": f"{geometry['width']}",
-                    #"height": f"{geometry['height']}",
                     "transparent_background": bg
                 }
             }
-            return requests.post(url, headers=headers, json=data).json()['job']['id']
+            resp = requests.post(url, headers=headers, json=data)
+
+            try:
+                body = resp.json()
+            except ValueError:
+                raise RuntimeError(
+                    f"Canva export PNG returned non-JSON response: "
+                    f"status={resp.status_code}, text={resp.text}"
+                )
+
+            if 'job' not in body or 'id' not in body['job']:
+                raise RuntimeError(
+                    f"Unexpected Canva export PNG response: "
+                    f"status={resp.status_code}, body={body}"
+                )
+
+            return body['job']['id']
 
         def svg(design_id, bg=False, client_id=None, client_secret=None, token_data="canva.json"):
             access_token = token_(client_id, client_secret, token_data)

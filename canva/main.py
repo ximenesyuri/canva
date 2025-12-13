@@ -20,3 +20,5 @@ class Canva:
             scopes=scopes,
             token_data=token_file
         )
+
+#Canva.init()

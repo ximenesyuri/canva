@@ -216,6 +216,17 @@ class auth:
                     "(canva.init(...)) to obtain new tokens."
                 )
 
+            if response.status_code == 429:
+                raise RuntimeError(
+                    f"Canva refresh token rate-limited (429): {err_body}. "
+                    "Reduce concurrent refresh attempts and/or wait before retrying."
+                )
+
+            raise Exception(
+                f"Failed to refresh token: {response.status_code}, {err_body}"
+            )
+
+
             raise Exception(
                 f"Failed to refresh token: {response.status_code}, {err_body}"
             )
