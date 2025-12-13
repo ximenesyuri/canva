@@ -7,12 +7,7 @@ MAX_EXPORT_RETRIES = 5
 class export:
     class design:
         def png(design_id, bg=False, client_id=None, client_secret=None, token_data="canva.json"):
-            access_token = token_(client_id, client_secret, token_data)
             url = 'https://api.canva.com/rest/v1/exports'
-            headers = {
-                'Authorization': f'Bearer {access_token}',
-                "Content-Type": "application/json"
-            }
             data = {
                 "design_id": design_id,
                 "format": {
@@ -22,7 +17,15 @@ class export:
             }
 
             for attempt in range(MAX_EXPORT_RETRIES):
-                resp = requests.post(url, headers=headers, json=data)
+                resp = authorized_request(
+                    "POST",
+                    url,
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    token_data=token_data,
+                    json=data,
+                    headers={"Content-Type": "application/json"},
+                )
 
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("Retry-After")

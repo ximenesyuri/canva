@@ -8,30 +8,43 @@ _cached_token = None
 def token_(client_id=None, client_secret=None, token_data="canva.json"):
     global _cached_token
 
-    if _cached_token is None:
-        _cached_token = auth.token.get.current(token_data)
-
-    url = 'https://api.canva.com/rest/v1/designs'
-    headers = {
-        'Authorization': f'Bearer {_cached_token}'
-    }
-    response = requests.get(url, headers=headers)
-
-    if response.status_code == 200:
+    with _token_lock:
+        if _cached_token is None:
+            _cached_token = auth.token.get.current(token_data)
         return _cached_token
 
-    if response.status_code in (401, 403):
-        with _token_lock:
-            headers = {'Authorization': f'Bearer {_cached_token}'}
-            check = requests.get(url, headers=headers)
-            if check.status_code == 200:
-                return _cached_token
 
-            new_token = auth.token.refresh(client_id, client_secret, token_data)
-            _cached_token = new_token
-            return _cached_token
+def authorized_request(
+    method,
+    url,
+    client_id=None,
+    client_secret=None,
+    token_data="canva.json",
+    **kwargs
+):
+    global _cached_token
 
-    raise RuntimeError(
-        f"Canva /designs probe returned {response.status_code}: {response.text}"
-    )
+    for attempt in range(2):
+        access_token = token_(client_id, client_secret, token_data)
 
+        headers = kwargs.pop("headers", {}) or {}
+        headers = {
+            **headers,
+            "Authorization": f"Bearer {access_token}",
+        }
+
+        resp = requests.request(method, url, headers=headers, **kwargs)
+
+        if resp.status_code in (401, 403) and attempt == 0:
+            with _token_lock:
+                new_token = auth.token.refresh(
+                    client_id=client_id,
+                    client_secret=client_secret,
+                    token_data=token_data,
+                )
+                _cached_token = new_token
+            continue
+
+        return resp
+
+    raise RuntimeError("authorized_request: unexpected control flow")
