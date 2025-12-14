@@ -79,7 +79,7 @@ def request_json_with_429_retry(
     client_id=None,
     client_secret=None,
     token_data="canva.json",
-    max_retries: int = MAX_API_RETRIES,
+    max_retries=MAX_API_RETRIES,
     **kwargs
 ):
     last_resp = None
