@@ -1,5 +1,3 @@
-# /home/yx/files/dev/prj/py/canva/canva/mods/helper.py
-
 import threading
 import time
 import requests
@@ -47,7 +45,6 @@ def authorized_request(
         }
 
         resp = requests.request(method, url, headers=headers, **kwargs)
-
         if resp.status_code in (401, 403) and attempt == 0:
             with _token_lock:
                 now = time.time()
@@ -62,8 +59,8 @@ def authorized_request(
                         client_secret=client_secret,
                         token_data=token_data,
                     )
-                except Exception:
-                    return resp
+                except Exception as e:
+                    raise
 
                 _cached_token = new_token
             continue
@@ -114,15 +111,32 @@ def request_json_with_429_retry(
             continue
 
         try:
-            return resp.json()
+            body = resp.json()
         except ValueError:
             raise RuntimeError(
                 f"Canva API returned non-JSON response: "
                 f"status={resp.status_code}, text={resp.text}, url={url}"
             )
 
+        if not (200 <= resp.status_code < 300):
+            if (
+                resp.status_code in (401, 403)
+                and isinstance(body, dict)
+                and body.get("code") == "invalid_access_token"
+            ):
+                raise RuntimeError(
+                    "Canva access token is invalid. "
+                    "Delete your token file and re-run the OAuth flow "
+                    "(canva.init(...)) to obtain new tokens."
+                )
+
+            raise RuntimeError(
+                f"Canva API error: status={resp.status_code}, body={body}, url={url}"
+            )
+
+        return body
+
     raise RuntimeError(
         f"Too many 429 responses from Canva API after {max_retries} attempts: "
         f"method={method}, url={url}, last_status={getattr(last_resp, 'status_code', None)}"
     )
-
