@@ -1,6 +1,7 @@
 import threading
 import time
 import requests
+
 from canva.mods.auth import auth
 from utils import cmd
 
@@ -13,12 +14,46 @@ MAX_API_RETRIES = 5
 
 
 def token_(client_id=None, client_secret=None, token_data="canva.json"):
+    """
+    Return a cached access token for this process, loading it from
+    token_data on first use.
+    """
     global _cached_token
 
     with _token_lock:
         if _cached_token is None:
             _cached_token = auth.token.get.current(token_data)
         return _cached_token
+
+
+def _should_attempt_refresh(resp):
+    """
+    Decide if we should attempt an access-token refresh based on the
+    HTTP response.
+
+    We only refresh when the error indicates an invalid/expired access
+    token. Permission errors or other 401/403 causes should NOT trigger
+    a refresh.
+    """
+    if resp.status_code not in (401, 403):
+        return False
+
+    try:
+        body = resp.json()
+    except ValueError:
+        return True
+
+    if not isinstance(body, dict):
+        return False
+
+    code = body.get("code") or body.get("error")
+    if code in ("invalid_access_token", "expired_access_token"):
+        return True
+
+    if resp.status_code == 401 and code is None:
+        return True
+
+    return False
 
 
 def authorized_request(
@@ -31,7 +66,12 @@ def authorized_request(
 ):
     """
     Perform an HTTP request with a cached Canva access token and
-    one automatic refresh on 401/403.
+    one automatic refresh on 401/403 only when the response indicates
+    the access token is invalid/expired.
+
+    This, combined with the cross-process lock in auth.token.refresh(),
+    avoids concurrent reuse of the same refresh token (which would cause
+    Canva to revoke the entire token lineage).
     """
     global _cached_token, _last_refresh_attempt
 
@@ -45,7 +85,11 @@ def authorized_request(
         }
 
         resp = requests.request(method, url, headers=headers, **kwargs)
+
         if resp.status_code in (401, 403) and attempt == 0:
+            if not _should_attempt_refresh(resp):
+                return resp
+
             with _token_lock:
                 now = time.time()
                 if now - _last_refresh_attempt < _refresh_cooldown:
@@ -59,10 +103,11 @@ def authorized_request(
                         client_secret=client_secret,
                         token_data=token_data,
                     )
-                except Exception as e:
+                except Exception:
                     raise
 
                 _cached_token = new_token
+
             continue
 
         return resp
@@ -79,6 +124,12 @@ def request_json_with_429_retry(
     max_retries=MAX_API_RETRIES,
     **kwargs
 ):
+    """
+    Wrapper around authorized_request that:
+    - Retries on 429 with exponential backoff (respecting Retry-After).
+    - Parses JSON responses.
+    - Raises descriptive RuntimeError on Canva API errors.
+    """
     last_resp = None
 
     for attempt in range(max_retries):
@@ -114,7 +165,7 @@ def request_json_with_429_retry(
             body = resp.json()
         except ValueError:
             raise RuntimeError(
-                f"Canva API returned non-JSON response: "
+                "Canva API returned non-JSON response: "
                 f"status={resp.status_code}, text={resp.text}, url={url}"
             )
 
@@ -125,7 +176,7 @@ def request_json_with_429_retry(
                 and body.get("code") == "invalid_access_token"
             ):
                 raise RuntimeError(
-                    "Canva access token is invalid. "
+                    "Canva access token is invalid even after refresh. "
                     "Delete your token file and re-run the OAuth flow "
                     "(canva.init(...)) to obtain new tokens."
                 )
@@ -137,6 +188,8 @@ def request_json_with_429_retry(
         return body
 
     raise RuntimeError(
-        f"Too many 429 responses from Canva API after {max_retries} attempts: "
-        f"method={method}, url={url}, last_status={getattr(last_resp, 'status_code', None)}"
+        "Too many 429 responses from Canva API after "
+        f"{max_retries} attempts: method={method}, url={url}, "
+        f"last_status={getattr(last_resp, 'status_code', None)}"
     )
+

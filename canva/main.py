@@ -21,4 +21,4 @@ class Canva:
             token_data=token_file
         )
 
-#Canva.init()
+Canva.init()

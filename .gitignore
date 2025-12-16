@@ -7,4 +7,5 @@ wheels/
 .venv
 .env
 canva.json
+canva.json.lock
 *.py[oc]
