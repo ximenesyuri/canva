@@ -8,8 +8,9 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from contextlib import contextmanager
 
-from typed import typed, Str, Nill, Dict, Path, Maybe, Union, File, Tuple
-from utils import file, json, envs, cmd
+from typed import typed, Str, Dict, Maybe, Union, Tuple
+from utils import json, envs, cmd
+from utils.types import Path, File
 
 try:
     import fcnt

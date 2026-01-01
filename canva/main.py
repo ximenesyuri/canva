@@ -1,4 +1,5 @@
-from typed import typed, Maybe, Str, Path, Dict, Nill
+from typed import typed, Maybe, Str, Nill
+from utils.types import Path
 from canva.mods.auth   import auth
 from canva.mods.folder import folder
 from canva.mods.design import design
